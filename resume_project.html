@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Resume Upload Portal</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0d0f;
+      --surface: #16161a;
+      --surface2: #1e1e24;
+      --border: #2a2a35;
+      --accent: #c8ff00;
+      --accent2: #00e5ff;
+      --text: #f0f0f0;
+      --muted: #7a7a8c;
+      --danger: #ff4d6d;
+      --success: #00e676;
+      --radius: 12px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ─── HEADER ─── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.2rem 2.5rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+    header .logo {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 1.4rem;
+      letter-spacing: -0.03em;
+    }
+    header .logo span { color: var(--accent); }
+    header nav a {
+      color: var(--muted);
+      text-decoration: none;
+      margin-left: 1.5rem;
+      font-size: 0.9rem;
+      transition: color 0.2s;
+    }
+    header nav a:hover { color: var(--text); }
+
+    /* ─── HERO ─── */
+    .hero {
+      text-align: center;
+      padding: 4rem 2rem 2.5rem;
+    }
+    .hero h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 1rem;
+    }
+    .hero h1 em {
+      font-style: normal;
+      color: var(--accent);
+      text-decoration: underline wavy var(--accent2);
+    }
+    .hero p {
+      color: var(--muted);
+      font-size: 1.05rem;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 4rem;
+      width: 100%;
+
+    .steps {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 2.5rem;
+      justify-content: center;
+    }
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    .step-num {
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      border: 1.5px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700; font-size: 0.75rem;
+      transition: all 0.3s;
+    }
+    .step.active .step-num {
+      background: var(--accent); border-color: var(--accent);
+      color: #000;
+    }
+    .step.done .step-num {
+      background: var(--success); border-color: var(--success); color: #000;
+    }
+    .step-line {
+      flex: 1; max-width: 60px;
+      height: 1.5px; background: var(--border);
+    }
+
+    /* ─── CARD ─── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2.5rem;
+    }
+
+    /* ─── DROP ZONE ─── */
+    #dropZone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 3.5rem 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.25s;
+      position: relative;
+      background: var(--surface2);
+    }
+    #dropZone:hover, #dropZone.drag-over {
+      border-color: var(--accent);
+      background: rgba(200,255,0,0.04);
+    }
+    #dropZone .icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      display: block;
+    }
+    #dropZone h3 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 0.4rem;
+    }
+    #dropZone p { color: var(--muted); font-size: 0.88rem; }
+    #dropZone .browse-btn {
+      display: inline-block;
+      margin-top: 1.2rem;
+      padding: 0.55rem 1.4rem;
+      background: var(--accent);
+      color: #000;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 0.85rem;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    #dropZone .browse-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 20px rgba(200,255,0,0.35);
+    }
+    #fileInput { display: none; }
+
+    /* ─── FILE PREVIEW ─── */
+    #filePreview {
+      display: none;
+      align-items: center;
+      gap: 1rem;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.2rem 1.5rem;
+      margin-top: 1rem;
+    }
+    #filePreview .file-icon {
+      font-size: 2rem;
+      flex-shrink: 0;
+    }
+    #filePreview .file-info { flex: 1; }
+    #filePreview .file-name {
+      font-weight: 600;
+      font-size: 0.95rem;
+      margin-bottom: 0.2rem;
+      word-break: break-all;
+    }
+    #filePreview .file-meta { color: var(--muted); font-size: 0.8rem; }
+    #filePreview .remove-btn {
+      background: none; border: 1px solid var(--border);
+      color: var(--danger); cursor: pointer;
+      border-radius: 6px; padding: 0.35rem 0.75rem;
+      font-size: 0.8rem; transition: all 0.2s;
+    }
+    #filePreview .remove-btn:hover { background: rgba(255,77,109,0.1); }
+
+    /* ─── FORM ─── */
+    .form-section { display: none; }
+    .form-section.active { display: block; }
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.2rem;
+      margin-top: 1.5rem;
+    }
+    .form-grid .full { grid-column: 1 / -1; }
+    .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
+    .form-group label {
+      font-size: 0.82rem;
+      color: var(--muted);
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.95rem;
+      padding: 0.7rem 1rem;
+      outline: none;
+      transition: border-color 0.2s;
+      resize: vertical;
+    }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      border-color: var(--accent);
+    }
+    .form-group select option { background: var(--surface2); }
+
+    .tags-input-wrapper {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.5rem;
+      display: flex; flex-wrap: wrap; gap: 0.4rem;
+      cursor: text;
+      transition: border-color 0.2s;
+      min-height: 44px;
+    }
+    .tags-input-wrapper:focus-within { border-color: var(--accent); }
+    .tag {
+      background: rgba(200,255,0,0.12);
+      color: var(--accent);
+      border-radius: 4px;
+      padding: 0.2rem 0.6rem;
+      font-size: 0.8rem;
+      display: flex; align-items: center; gap: 0.35rem;
+    }
+    .tag .tag-remove {
+      cursor: pointer; font-size: 0.75rem;
+      color: var(--muted); transition: color 0.15s;
+    }
+    .tag .tag-remove:hover { color: var(--danger); }
+    #skillInput {
+      border: none; outline: none; background: transparent;
+      color: var(--text); font-family: 'DM Sans', sans-serif;
+      font-size: 0.9rem; flex: 1; min-width: 120px;
+      padding: 0.2rem 0.4rem;
+    }
+
+    .progress-bar {
+      width: 100%; height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+      margin: 1.5rem 0;
+      display: none;
+    }
+    .progress-bar .bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent2), var(--accent));
+      width: 0%; border-radius: 2px;
+      transition: width 0.05s linear;
+    }
+    .actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 2rem;
+      gap: 1rem;
+    }
+    .btn {
+      padding: 0.7rem 1.8rem;
+      border-radius: 8px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #000;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 24px rgba(200,255,0,0.3);
+    }
+    .btn-secondary {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover { color: var(--text); border-color: var(--muted); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+
+    #successView {
+      display: none;
+      text-align: center;
+      padding: 3rem 1rem;
+    }
+    .success-icon {
+      width: 80px; height: 80px;
+      background: rgba(0,230,118,0.12);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2.4rem;
+      margin: 0 auto 1.5rem;
+      border: 2px solid var(--success);
+    }
+    #successView h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.8rem; font-weight: 800;
+      margin-bottom: 0.6rem;
+    }
+    #successView p { color: var(--muted); max-width: 400px; margin: 0 auto 2rem; }
+    .submission-id {
+      display: inline-block;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.6rem 1.4rem;
+      font-family: monospace;
+      font-size: 0.9rem;
+      color: var(--accent2);
+      margin-bottom: 2rem;
+    }
+    .summary-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.8rem;
+      text-align: left;
+      max-width: 480px;
+      margin: 1.5rem auto 2.5rem;
+    }
+    .summary-item { display: flex; flex-direction: column; gap: 0.2rem; }
+    .summary-label { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .summary-value { font-size: 0.95rem; font-weight: 500; }
+
+    #toast {
+      position: fixed; bottom: 2rem; right: 2rem;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.9rem 1.4rem;
+      font-size: 0.88rem;
+      display: flex; align-items: center; gap: 0.6rem;
+      transform: translateY(120%);
+      transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+      z-index: 999;
+      max-width: 320px;
+    }
+    #toast.show { transform: translateY(0); }
+    #toast.error { border-color: var(--danger); }
+    #toast.success { border-color: var(--success); }
+
+    footer {
+      margin-top: auto;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      padding: 1.2rem;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    @media (max-width: 600px) {
+      .form-grid { grid-template-columns: 1fr; }
+      header { padding: 1rem 1.2rem; }
+      .card { padding: 1.5rem; }
+      .summary-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Resume<span>.</span>Portal</div>
+  <nav>
+    <a href="#">Home</a>
+    <a href="#">Jobs</a>
+    <a href="#">About</a>
+  </nav>
+</header>
+
+<div class="hero">
+  <h1>Upload Your <em>Resume</em><br>Land Your Dream Job</h1>
+  <p>Submit your resume in seconds. We accept PDF, DOC, and DOCX formats up to 5 MB.</p>
+</div>
+
+<div class="container">
+  <!-- Steps -->
+  <div class="steps" id="stepsBar">
+    <div class="step active" id="step1"><div class="step-num">1</div><span>Upload</span></div>
+    <div class="step-line"></div>
+    <div class="step" id="step2"><div class="step-num">2</div><span>Details</span></div>
+    <div class="step-line"></div>
+    <div class="step" id="step3"><div class="step-num">3</div><span>Submit</span></div>
+  </div>
+
+  <!-- Card -->
+  <div class="card">
+
+    <!-- SECTION 1: File Upload -->
+    <div id="section1" class="form-section active">
+      <div id="dropZone">
+        <span class="icon">📄</span>
+        <h3>Drag & Drop your resume here</h3>
+        <p>Supports PDF, DOC, DOCX — max 5 MB</p>
+        <button class="browse-btn" onclick="document.getElementById('fileInput').click()">Browse Files</button>
+        <input type="file" id="fileInput" accept=".pdf,.doc,.docx" />
+      </div>
+      <div id="filePreview">
+        <div class="file-icon" id="previewIcon">📄</div>
+        <div class="file-info">
+          <div class="file-name" id="previewName">resume.pdf</div>
+          <div class="file-meta" id="previewMeta">0 KB</div>
+        </div>
+        <button class="remove-btn" onclick="removeFile()">✕ Remove</button>
+      </div>
+      <div class="actions">
+        <span style="color:var(--muted);font-size:0.82rem;">Step 1 of 3</span>
+        <button class="btn btn-primary" id="nextBtn1" disabled onclick="goToStep(2)">Continue →</button>
+      </div>
+    </div>
+
+    <!-- SECTION 2: Personal Details -->
+    <div id="section2" class="form-section">
+      <h3 style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.1rem;margin-bottom:0.3rem;">Personal Information</h3>
+      <p style="color:var(--muted);font-size:0.85rem;">Help employers learn more about you</p>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>First Name *</label>
+          <input type="text" id="firstName" placeholder="e.g. Arjun" />
+        </div>
+        <div class="form-group">
+          <label>Last Name *</label>
+          <input type="text" id="lastName" placeholder="e.g. Sharma" />
+        </div>
+        <div class="form-group">
+          <label>Email *</label>
+          <input type="email" id="email" placeholder="arjun@example.com" />
+        </div>
+        <div class="form-group">
+          <label>Phone</label>
+          <input type="tel" id="phone" placeholder="+91 98765 43210" />
+        </div>
+        <div class="form-group">
+          <label>Job Role *</label>
+          <select id="jobRole">
+            <option value="">— Select a role —</option>
+            <option>Frontend Developer</option>
+            <option>Backend Developer</option>
+            <option>Full Stack Developer</option>
+            <option>Data Scientist</option>
+            <option>UI/UX Designer</option>
+            <option>DevOps Engineer</option>
+            <option>Product Manager</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Experience</label>
+          <select id="experience">
+            <option value="">— Select —</option>
+            <option>Fresher (0 yrs)</option>
+            <option>1 – 2 years</option>
+            <option>3 – 5 years</option>
+            <option>5 – 10 years</option>
+            <option>10+ years</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label>Skills (press Enter to add)</label>
+          <div class="tags-input-wrapper" onclick="document.getElementById('skillInput').focus()">
+            <div id="tagsContainer"></div>
+            <input type="text" id="skillInput" placeholder="e.g. React, Node.js, Python…" />
+          </div>
+        </div>
+        <div class="form-group full">
+          <label>Cover Note (optional)</label>
+          <textarea id="coverNote" rows="3" placeholder="Briefly introduce yourself…"></textarea>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-secondary" onclick="goToStep(1)">← Back</button>
+        <button class="btn btn-primary" id="nextBtn2" onclick="goToStep(3)">Review & Submit →</button>
+      </div>
+    </div>
+
+    <!-- SECTION 3: Submit -->
+    <div id="section3" class="form-section">
+      <h3 style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.1rem;margin-bottom:0.3rem;">Review Your Submission</h3>
+      <p style="color:var(--muted);font-size:0.85rem;">Double-check before submitting</p>
+      <div id="reviewContent" style="margin-top:1.5rem;"></div>
+      <div class="progress-bar" id="progressBar"><div class="bar" id="progressFill"></div></div>
+      <div class="actions">
+        <button class="btn btn-secondary" id="backBtn3" onclick="goToStep(2)">← Edit</button>
+        <button class="btn btn-primary" id="submitBtn" onclick="submitForm()">🚀 Submit Application</button>
+      </div>
+    </div>
+
+    <!-- SUCCESS -->
+    <div id="successView">
+      <div class="success-icon">✅</div>
+      <h2>Application Submitted!</h2>
+      <p>Your resume has been received. We'll be in touch within 3–5 business days.</p>
+      <div class="submission-id" id="submissionId">REF-XXXXXXXX</div>
+      <div class="summary-grid" id="successSummary"></div>
+      <button class="btn btn-primary" onclick="resetForm()">Submit Another</button>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  © 2025 ResumePortal — Built as a mini project · Source code included
+</footer>
+
+<div id="toast"></div>
+
+<script>
+
+  let uploadedFile = null;
+  const skills = [];
+  let currentStep = 1;
+
+  const fileIcons = { pdf: '📕', doc: '📘', docx: '📘' };
+  function getIcon(name) {
+    const ext = name.split('.').pop().toLowerCase();
+    return fileIcons[ext] || '📄';
+  }
+  function formatSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+  }
+
+  const dropZone = document.getElementById('dropZone');
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) handleFile(file);
+  });
+  document.getElementById('fileInput').addEventListener('change', e => {
+    if (e.target.files[0]) handleFile(e.target.files[0]);
+  });
+
+  function handleFile(file) {
+    const allowed = ['application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    const extOk = /\.(pdf|doc|docx)$/i.test(file.name);
+
+    if (!allowed.includes(file.type) && !extOk) {
+      showToast('⚠️ Only PDF, DOC, DOCX files are allowed.', 'error'); return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('⚠️ File size exceeds 5 MB.', 'error'); return;
+    }
+    uploadedFile = file;
+    document.getElementById('previewIcon').textContent = getIcon(file.name);
+    document.getElementById('previewName').textContent = file.name;
+    document.getElementById('previewMeta').textContent = formatSize(file.size) + ' · ' + file.type.split('/').pop().toUpperCase();
+    document.getElementById('filePreview').style.display = 'flex';
+    document.getElementById('nextBtn1').disabled = false;
+    showToast('✅ File ready to upload!', 'success');
+  }
+
+  function removeFile() {
+    uploadedFile = null;
+    document.getElementById('filePreview').style.display = 'none';
+    document.getElementById('fileInput').value = '';
+    document.getElementById('nextBtn1').disabled = true;
+    showToast('File removed.', '');
+  }
+
+  const skillInput = document.getElementById('skillInput');
+  skillInput.addEventListener('keydown', e => {
+    if ((e.key === 'Enter' || e.key === ',') && skillInput.value.trim()) {
+      e.preventDefault();
+      addSkill(skillInput.value.trim().replace(/,$/, ''));
+      skillInput.value = '';
+    }
+    if (e.key === 'Backspace' && !skillInput.value && skills.length) {
+      skills.pop();
+      renderTags();
+    }
+  });
+
+  function addSkill(name) {
+    if (!name || skills.includes(name) || skills.length >= 12) return;
+    skills.push(name);
+    renderTags();
+  }
+
+  function removeSkill(i) {
+    skills.splice(i, 1);
+    renderTags();
+  }
+
+  function renderTags() {
+    const c = document.getElementById('tagsContainer');
+    c.innerHTML = skills.map((s, i) =>
+      `<span class="tag">${s}<span class="tag-remove" onclick="removeSkill(${i})">✕</span></span>`
+    ).join('');
+  }
+
+  function goToStep(n) {
+    if (n === 2) {
+      if (!uploadedFile) { showToast('Please upload a resume first.', 'error'); return; }
+    }
+    if (n === 3) {
+      const fn = document.getElementById('firstName').value.trim();
+      const ln = document.getElementById('lastName').value.trim();
+      const em = document.getElementById('email').value.trim();
+      const jr = document.getElementById('jobRole').value;
+      if (!fn || !ln || !em || !jr) {
+        showToast('Please fill in all required fields.', 'error'); return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) {
+        showToast('Please enter a valid email.', 'error'); return;
+      }
+      buildReview();
+    }
+    currentStep = n;
+    document.querySelectorAll('.form-section').forEach(s => s.classList.remove('active'));
+    document.getElementById('section' + n).classList.add('active');
+    updateStepUI(n);
+  }
+
+  function updateStepUI(n) {
+    for (let i = 1; i <= 3; i++) {
+      const el = document.getElementById('step' + i);
+      el.classList.remove('active', 'done');
+      if (i < n) el.classList.add('done');
+      else if (i === n) el.classList.add('active');
+    }
+  }
+
+  function buildReview() {
+    const fields = [
+      ['Name', document.getElementById('firstName').value + ' ' + document.getElementById('lastName').value],
+      ['Email', document.getElementById('email').value],
+      ['Phone', document.getElementById('phone').value || '—'],
+      ['Role', document.getElementById('jobRole').value],
+      ['Experience', document.getElementById('experience').value || '—'],
+      ['Skills', skills.length ? skills.join(', ') : '—'],
+      ['Resume', uploadedFile ? uploadedFile.name : '—'],
+    ];
+    document.getElementById('reviewContent').innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.9rem;">
+        ${fields.map(([k, v]) => `
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:0.8rem 1rem;">
+            <div style="font-size:0.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.3rem;">${k}</div>
+            <div style="font-size:0.92rem;font-weight:500;">${v}</div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+
+  function submitForm() {
+    const submitBtn = document.getElementById('submitBtn');
+    const backBtn = document.getElementById('backBtn3');
+    const pb = document.getElementById('progressBar');
+    const fill = document.getElementById('progressFill');
+
+    submitBtn.disabled = true; backBtn.disabled = true;
+    pb.style.display = 'block';
+
+    let pct = 0;
+    const interval = setInterval(() => {
+      pct += Math.random() * 18;
+      if (pct >= 100) { pct = 100; clearInterval(interval); showSuccess(); }
+      fill.style.width = pct + '%';
+    }, 120);
+  }
+
+  function showSuccess() {
+    document.getElementById('section3').classList.remove('active');
+    document.getElementById('stepsBar').style.display = 'none';
+    document.getElementById('successView').style.display = 'block';
+
+    for (let i = 1; i <= 3; i++) document.getElementById('step' + i)?.classList.add('done');
+
+    const ref = 'REF-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+    document.getElementById('submissionId').textContent = ref;
+
+    const fn = document.getElementById('firstName').value;
+    const ln = document.getElementById('lastName').value;
+    document.getElementById('successSummary').innerHTML = [
+      ['Applicant', fn + ' ' + ln],
+      ['Role', document.getElementById('jobRole').value],
+      ['Resume', uploadedFile.name],
+      ['Submitted', new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })],
+    ].map(([k,v]) => `
+      <div class="summary-item">
+        <span class="summary-label">${k}</span>
+        <span class="summary-value">${v}</span>
+      </div>
+    `).join('');
+  }
+
+  function resetForm() {
+    uploadedFile = null;
+    skills.length = 0;
+    currentStep = 1;
+    document.getElementById('fileInput').value = '';
+    document.getElementById('filePreview').style.display = 'none';
+    document.getElementById('nextBtn1').disabled = true;
+    document.querySelectorAll('input:not(#fileInput), textarea').forEach(i => i.value = '');
+    document.querySelectorAll('select').forEach(s => s.selectedIndex = 0);
+    renderTags();
+
+    document.getElementById('successView').style.display = 'none';
+    document.getElementById('stepsBar').style.display = 'flex';
+    document.getElementById('progressBar').style.display = 'none';
+    document.getElementById('progressFill').style.width = '0';
+    document.getElementById('submitBtn').disabled = false;
+    document.getElementById('backBtn3').disabled = false;
+
+    document.querySelectorAll('.form-section').forEach(s => s.classList.remove('active'));
+    document.getElementById('section1').classList.add('active');
+    updateStepUI(1);
+  }
+
+  let toastTimer;
+  function showToast(msg, type) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'show ' + type;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 3200);
+  }
+</script>
+</body>
+</html>
