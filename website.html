@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KeyForge — Adaptive Typing Trainer</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div class="app">
+
+  <!-- Header -->
+  <header class="header">
+    <div class="logo">key<span>forge</span></div>
+    <div class="mode-tabs">
+      <button class="mode-tab active" data-mode="words">Words</button>
+      <button class="mode-tab" data-mode="sentences">Sentences</button>
+      <button class="mode-tab" data-mode="drill">Weak Key Drill</button>
+    </div>
+  </header>
+
+  <!-- Stats -->
+  <div class="stats-bar">
+    <div class="stat-cell">
+      <div class="stat-value" id="statWpm">—</div>
+      <div class="stat-label">WPM</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-value" id="statAcc">—</div>
+      <div class="stat-label">Accuracy</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-value" id="statTime">0s</div>
+      <div class="stat-label">Time</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-value" id="statErrors">0</div>
+      <div class="stat-label">Errors</div>
+    </div>
+  </div>
+
+  <!-- Typing Stage -->
+  <div class="stage" id="stage" onclick="focusInput()">
+    <div class="target-text" id="targetText"></div>
+    <input class="hidden-input" id="hiddenInput" autocomplete="off" autocorrect="off"
+           autocapitalize="off" spellcheck="false" />
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="stage-footer">
+      <span class="hint">Click here or press any key to start &nbsp;·&nbsp; <kbd>Tab</kbd> to reset</span>
+      <button class="btn-reset" onclick="resetSession()">Reset</button>
+    </div>
+  </div>
+
+  <!-- Weak Keys Panel -->
+  <div class="weak-panel">
+    <span class="weak-label">Weak keys</span>
+    <div class="weak-keys" id="weakKeys">
+      <span class="weak-empty">Type to discover your weak spots</span>
+    </div>
+    <button class="btn-drill" id="drillBtn" disabled onclick="startDrill()">Drill these →</button>
+  </div>
+
+  <!-- Heatmap Keyboard -->
+  <div class="keyboard-section">
+    <div class="keyboard-header">
+      <span class="keyboard-title">Speed heatmap — live</span>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot fast"></div>Fast</div>
+        <div class="legend-item"><div class="legend-dot slow"></div>Slow</div>
+        <div class="legend-item"><div class="legend-dot none"></div>Untouched</div>
+      </div>
+    </div>
+    <div class="keyboard" id="keyboard"></div>
+  </div>
+
+</div>
+
+<!-- Result Overlay -->
+<div class="result-overlay" id="resultOverlay">
+  <div class="result-card">
+    <div>
+      <div class="result-wpm" id="resultWpm">0</div>
+      <div class="result-label">Words per minute</div>
+    </div>
+    <div class="result-grid">
+      <div class="result-cell">
+        <div class="val" id="resultAcc">0%</div>
+        <div class="lbl">Accuracy</div>
+      </div>
+      <div class="result-cell">
+        <div class="val" id="resultErrors">0</div>
+        <div class="lbl">Errors</div>
+      </div>
+      <div class="result-cell">
+        <div class="val" id="resultTime">0s</div>
+        <div class="lbl">Time</div>
+      </div>
+      <div class="result-cell">
+        <div class="val" id="resultBest">—</div>
+        <div class="lbl">Best Key</div>
+      </div>
+    </div>
+    <button class="btn-again" onclick="resetSession()">Try again</button>
+  </div>
+</div>
+
+<script>
+// ── Word banks ────────────────────────────────────────────────────
+const WORD_BANK = [
+  'the','be','to','of','and','a','in','that','have','it','for','not','on','with',
+  'he','as','you','do','at','this','but','his','by','from','they','we','say','her',
+  'she','or','an','will','my','one','all','would','there','their','what','so','up',
+  'out','if','about','who','get','which','go','me','when','make','can','like','time',
+  'no','just','him','know','take','people','into','year','your','good','some','could',
+  'them','see','other','than','then','now','look','only','come','its','over','think',
+  'also','back','after','use','two','how','our','work','first','well','way','even',
+  'new','want','because','any','these','give','day','most','us','between','need',
+  'large','often','hand','high','place','hold','turn','near','move','live','put',
+  'run','read','call','keep','ask','feel','try','tell','write','add','open','seem'
+];
+
+const SENTENCES = [
+  'The quick brown fox jumps over the lazy dog.',
+  'Pack my box with five dozen liquor jugs.',
+  'How vexingly quick daft zebras jump.',
+  'The five boxing wizards jump quickly.',
+  'Sphinx of black quartz, judge my vow.',
+  'Bright vixens jump; dozy fowl quack.',
+  'Jackdaws love my big sphinx of quartz.',
+  'Two driven jocks help fax my big quiz.',
+  'Quick zephyrs blow, vexing daft Jim.',
+  'The job requires extra pluck and zeal from every young wage earner.',
+];
+
+// ── Keyboard layout ───────────────────────────────────────────────
+const KB_ROWS = [
+  [
+    {k:'`',cls:''},{k:'1',cls:''},{k:'2',cls:''},{k:'3',cls:''},{k:'4',cls:''},
+    {k:'5',cls:''},{k:'6',cls:''},{k:'7',cls:''},{k:'8',cls:''},{k:'9',cls:''},
+    {k:'0',cls:''},{k:'-',cls:''},{k:'=',cls:''},{k:'⌫',cls:'wide-225'}
+  ],
+  [
+    {k:'tab',cls:'wide-15'},{k:'q',cls:''},{k:'w',cls:''},{k:'e',cls:''},{k:'r',cls:''},
+    {k:'t',cls:''},{k:'y',cls:''},{k:'u',cls:''},{k:'i',cls:''},{k:'o',cls:''},
+    {k:'p',cls:''},{k:'[',cls:''},{k:']',cls:''},{k:'\\',cls:'wide-15'}
+  ],
+  [
+    {k:'caps',cls:'wide-175'},{k:'a',cls:''},{k:'s',cls:''},{k:'d',cls:''},{k:'f',cls:''},
+    {k:'g',cls:''},{k:'h',cls:''},{k:'j',cls:''},{k:'k',cls:''},{k:'l',cls:''},
+    {k:';',cls:''},{k:"'",cls:''},{k:'↵',cls:'wide-2'}
+  ],
+  [
+    {k:'shift',cls:'wide-225'},{k:'z',cls:''},{k:'x',cls:''},{k:'c',cls:''},{k:'v',cls:''},
+    {k:'b',cls:''},{k:'n',cls:''},{k:'m',cls:''},{k:',',cls:''},{k:'.',cls:''},
+    {k:'/',cls:''},{k:'⇧',cls:'wide-175'}
+  ],
+  [
+    {k:'',cls:'wide-15'},{k:'',cls:'wide-15'},{k:'space',cls:'space'},
+    {k:'',cls:'wide-15'},{k:'',cls:'wide-15'}
+  ]
+];
+
+// ── State ─────────────────────────────────────────────────────────
+let target = '';
+let typed  = '';
+let started = false;
+let finished = false;
+let startTime = null;
+let timerInterval = null;
+let totalErrors = 0;
+let currentMode = 'words';
+
+// keyData: { char → { totalMs: 0, count: 0, errors: 0 } }
+const keyData = {};
+let lastKeyTime = null;
+let pendingChar = null; // the char we're waiting for the user to type
+
+// ── Build keyboard ────────────────────────────────────────────────
+function buildKeyboard() {
+  const kb = document.getElementById('keyboard');
+  kb.innerHTML = '';
+  KB_ROWS.forEach(row => {
+    const rowEl = document.createElement('div');
+    rowEl.className = 'kb-row';
+    row.forEach(({k, cls}) => {
+      const key = document.createElement('div');
+      key.className = 'key' + (cls ? ' ' + cls : '');
+      key.textContent = k;
+      key.dataset.key = k.toLowerCase();
+      rowEl.appendChild(key);
+    });
+    kb.appendChild(rowEl);
+  });
+}
+
+// ── Generate text ─────────────────────────────────────────────────
+function generateText(mode) {
+  if (mode === 'sentences') {
+    return SENTENCES[Math.floor(Math.random() * SENTENCES.length)];
+  }
+  if (mode === 'drill') {
+    const weak = getWeakKeys();
+    if (!weak.length) return generateText('words');
+    // Build text heavily weighted toward weak keys
+    let result = '';
+    const fillers = ['the','and','a','to','of','in','is','it'];
+    for (let i = 0; i < 40; i++) {
+      const useWeak = Math.random() < 0.65 && weak.length;
+      if (useWeak) {
+        const wk = weak[Math.floor(Math.random() * weak.length)];
+        // construct a mini word containing that key
+        const words = WORD_BANK.filter(w => w.includes(wk));
+        const pick = words.length
+          ? words[Math.floor(Math.random() * words.length)]
+          : wk + 'a';
+        result += pick + ' ';
+      } else {
+        result += fillers[Math.floor(Math.random() * fillers.length)] + ' ';
+      }
+    }
+    return result.trim();
+  }
+  // words
+  const shuffled = [...WORD_BANK].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, 35).join(' ');
+}
+
+// ── Render target text ────────────────────────────────────────────
+function renderTarget() {
+  const el = document.getElementById('targetText');
+  el.innerHTML = '';
+  for (let i = 0; i < target.length; i++) {
+    const span = document.createElement('span');
+    span.className = 'char';
+    span.dataset.index = i;
+    span.textContent = target[i] === ' ' ? '\u00A0' : target[i];
+    if (i === typed.length) span.classList.add('cursor');
+    if (i < typed.length) {
+      span.classList.add(typed[i] === target[i] ? 'correct' : 'wrong');
+    }
+    el.appendChild(span);
+  }
+  // Progress
+  const pct = target.length ? (typed.length / target.length * 100) : 0;
+  document.getElementById('progressFill').style.width = pct + '%';
+}
+
+// ── Stats update ──────────────────────────────────────────────────
+function updateStats() {
+  const elapsed = startTime ? (Date.now() - startTime) / 60000 : 0;
+  const words    = typed.trim().split(/\s+/).filter(Boolean).length;
+  const wpm      = elapsed > 0 ? Math.round(words / elapsed) : 0;
+  const correct  = [...typed].filter((c, i) => c === target[i]).length;
+  const acc      = typed.length ? Math.round(correct / typed.length * 100) : 100;
+  const elapsedS = startTime ? Math.round((Date.now() - startTime) / 1000) : 0;
+
+  const wpmEl = document.getElementById('statWpm');
+  wpmEl.textContent = wpm || '—';
+  wpmEl.className = 'stat-value' + (wpm >= 60 ? ' good' : wpm >= 35 ? ' warn' : wpm ? ' bad' : '');
+
+  const accEl = document.getElementById('statAcc');
+  accEl.textContent = typed.length ? acc + '%' : '—';
+  accEl.className = 'stat-value' + (acc >= 95 ? ' good' : acc >= 80 ? ' warn' : typed.length ? ' bad' : '');
+
+  document.getElementById('statTime').textContent   = elapsedS + 's';
+  document.getElementById('statErrors').textContent = totalErrors;
+}
+
+// ── Key heatmap logic ─────────────────────────────────────────────
+function recordKeyPress(char, isCorrect) {
+  const now = Date.now();
+  const c = char.toLowerCase();
+  if (!keyData[c]) keyData[c] = { totalMs: 0, count: 0, errors: 0 };
+
+  if (lastKeyTime !== null && pendingChar !== null) {
+    const ms = now - lastKeyTime;
+    // Only record if time is plausible (< 3s per key)
+    if (ms < 3000) {
+      keyData[c].totalMs += ms;
+      keyData[c].count++;
+    }
+  }
+  if (!isCorrect) keyData[c].errors++;
+  lastKeyTime = now;
+  pendingChar = char;
+
+  updateHeatmap();
+  flashKey(c);
+}
+
+function avgMs(c) {
+  const d = keyData[c];
+  if (!d || d.count === 0) return null;
+  return d.totalMs / d.count;
+}
+
+function updateHeatmap() {
+  // Get all keys with data
+  const entries = Object.entries(keyData)
+    .filter(([,d]) => d.count > 0)
+    .map(([c,d]) => ({ c, avg: d.totalMs / d.count }));
+
+  if (!entries.length) return;
+
+  const times = entries.map(e => e.avg);
+  const min = Math.min(...times);
+  const max = Math.max(...times);
+  const range = max - min || 1;
+
+  const keyEls = document.querySelectorAll('.key[data-key]');
+  keyEls.forEach(el => {
+    const k = el.dataset.key;
+    const d = keyData[k];
+    if (!d || d.count === 0) {
+      el.className = el.className.replace(/\bheat-\d\b/g, '').trim();
+      el.classList.add('heat-0');
+      return;
+    }
+    const avg = d.totalMs / d.count;
+    // Normalize: 0 = fastest, 1 = slowest
+    const norm = (avg - min) / range;
+    // Bucket into 5 heat levels (1=fast, 5=slow)
+    const heat = Math.min(5, Math.ceil(norm * 4) + 1);
+    const invHeat = 6 - heat; // invert: 5=fast(green), 1=slow(red)
+    el.className = el.className.replace(/\bheat-\d\b/g, '').trim();
+    el.classList.add('heat-' + invHeat);
+  });
+
+  updateWeakPanel();
+}
+
+function flashKey(c) {
+  const selector = c === ' ' ? '[data-key="space"]' : `[data-key="${CSS.escape(c)}"]`;
+  const el = document.querySelector('.key' + selector);
+  if (!el) return;
+  el.classList.add('pressed');
+  setTimeout(() => el.classList.remove('pressed'), 100);
+}
+
+// ── Weak keys ─────────────────────────────────────────────────────
+function getWeakKeys() {
+  const entries = Object.entries(keyData)
+    .filter(([c, d]) => d.count >= 2 && /^[a-z]$/.test(c))
+    .map(([c, d]) => ({ c, avg: d.totalMs / d.count, errors: d.errors }));
+
+  if (entries.length < 2) return [];
+
+  // Sort by slowest avg + error weighting
+  entries.sort((a, b) => (b.avg + b.errors * 120) - (a.avg + a.errors * 120));
+  return entries.slice(0, 5).map(e => e.c);
+}
+
+function updateWeakPanel() {
+  const weak = getWeakKeys();
+  const container = document.getElementById('weakKeys');
+  const drillBtn  = document.getElementById('drillBtn');
+
+  if (!weak.length) {
+    container.innerHTML = '<span class="weak-empty">Type to discover your weak spots</span>';
+    drillBtn.disabled = true;
+    return;
+  }
+
+  container.innerHTML = weak.map(c =>
+    `<span class="weak-key-badge">${c}</span>`
+  ).join('');
+  drillBtn.disabled = false;
+}
+
+// ── Drill mode ────────────────────────────────────────────────────
+function startDrill() {
+  setMode('drill');
+}
+
+function setMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-tab').forEach(t =>
+    t.classList.toggle('active', t.dataset.mode === mode)
+  );
+  resetSession();
+}
+
+// ── Input handling ────────────────────────────────────────────────
+function focusInput() {
+  document.getElementById('hiddenInput').focus();
+}
+
+document.getElementById('hiddenInput').addEventListener('keydown', e => {
+  if (e.key === 'Tab') { e.preventDefault(); resetSession(); return; }
+});
+
+document.getElementById('hiddenInput').addEventListener('input', e => {
+  if (finished) return;
+
+  const val = e.target.value;
+  if (!val) return;
+  e.target.value = '';
+
+  const char = val[val.length - 1]; // last character typed
+  const idx   = typed.length;
+
+  if (!started) {
+    started = true;
+    startTime = Date.now();
+    lastKeyTime = Date.now();
+    timerInterval = setInterval(updateStats, 500);
+  }
+
+  const expected = target[idx];
+  const correct  = char === expected;
+
+  if (!correct) totalErrors++;
+  recordKeyPress(char, correct);
+
+  // Accept correct or wrong (advance either way, wrong shown in red)
+  typed += char;
+
+  renderTarget();
+  updateStats();
+
+  // Check completion
+  if (typed.length >= target.length) {
+    finishSession();
+  }
+});
+
+// Backspace
+document.getElementById('hiddenInput').addEventListener('keyup', () => {});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Backspace' && !finished) {
+    if (typed.length > 0) {
+      typed = typed.slice(0, -1);
+      renderTarget();
+      updateStats();
+    }
+    e.preventDefault();
+  }
+});
+
+// ── Finish ────────────────────────────────────────────────────────
+function finishSession() {
+  finished = true;
+  clearInterval(timerInterval);
+
+  const elapsed  = (Date.now() - startTime) / 60000;
+  const words    = target.trim().split(/\s+/).length;
+  const wpm      = Math.round(words / elapsed);
+  const correct  = [...typed].filter((c, i) => c === target[i]).length;
+  const acc      = Math.round(correct / typed.length * 100);
+  const elapsedS = Math.round(elapsed * 60);
+
+  // Best key
+  const entries = Object.entries(keyData).filter(([,d]) => d.count >= 2);
+  let bestKey = '—';
+  if (entries.length) {
+    entries.sort((a,b) => (a[1].totalMs/a[1].count) - (b[1].totalMs/b[1].count));
+    bestKey = entries[0][0].toUpperCase();
+  }
+
+  document.getElementById('resultWpm').textContent    = wpm;
+  document.getElementById('resultAcc').textContent    = acc + '%';
+  document.getElementById('resultErrors').textContent = totalErrors;
+  document.getElementById('resultTime').textContent   = elapsedS + 's';
+  document.getElementById('resultBest').textContent   = bestKey;
+
+  document.getElementById('resultOverlay').classList.add('visible');
+}
+
+// ── Reset ─────────────────────────────────────────────────────────
+function resetSession() {
+  document.getElementById('resultOverlay').classList.remove('visible');
+  clearInterval(timerInterval);
+  typed = '';
+  started = false;
+  finished = false;
+  startTime = null;
+  totalErrors = 0;
+  lastKeyTime = null;
+  pendingChar = null;
+  target = generateText(currentMode);
+  renderTarget();
+  document.getElementById('statWpm').textContent   = '—';
+  document.getElementById('statWpm').className     = 'stat-value';
+  document.getElementById('statAcc').textContent   = '—';
+  document.getElementById('statAcc').className     = 'stat-value';
+  document.getElementById('statTime').textContent  = '0s';
+  document.getElementById('statErrors').textContent = '0';
+  document.getElementById('progressFill').style.width = '0%';
+  focusInput();
+}
+
+// ── Mode tab clicks ───────────────────────────────────────────────
+document.querySelectorAll('.mode-tab').forEach(btn => {
+  btn.addEventListener('click', () => setMode(btn.dataset.mode));
+});
+
+// ── Boot ──────────────────────────────────────────────────────────
+buildKeyboard();
+resetSession();
+
+// Focus on any keypress anywhere
+document.addEventListener('keypress', () => focusInput());
+</script>
+</body>
+</html>
